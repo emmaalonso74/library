@@ -33,7 +33,7 @@ interface Column {
 }
 
 const initialColumns: Column[] = [
-  { id: "number", label: "Nº", width: 60, minWidth: 60, isSticky: true, left: 0 },
+  { id: "number", label: "Nº", width: 80, minWidth: 80, isSticky: true, left: 0 },
   { id: "title", label: "Título", width: 220, minWidth: 180, isSticky: true, left: 70 },
   { id: "author", label: "Autor", width: 160, minWidth: 130 },
   { id: "universe", label: "Universo", width: 130, minWidth: 110 },
@@ -51,7 +51,6 @@ const initialColumns: Column[] = [
   { id: "format", label: "Formato", width: 90, minWidth: 90 },
   { id: "audience", label: "Público", width: 90, minWidth: 90 },
   { id: "readingDensity", label: "Lectura", width: 80, minWidth: 80 },
-  { id: "favorite", label: "Favorito", width: 80, minWidth: 80 },
   { id: "awards", label: "Premios", width: 170, minWidth: 170 },
 ]
 
@@ -357,7 +356,6 @@ export function BookTable({ books, quotesMap, refreshData, onBookSelect, onBookU
       format: book.format,
       audience: book.audience,
       readingDensity: book.reading_difficulty,
-      favorite: book.favorite,
       awards: book.awards,
       universe: book.series?.id?.toString(),
       author: book.author?.id?.toString(),
@@ -366,149 +364,171 @@ export function BookTable({ books, quotesMap, refreshData, onBookSelect, onBookU
     return fieldValues[field] ?? null
   }
 
-  const renderDisplayValue = (columnId: string, value: any, bookId?: number) => {
-    switch (columnId) {
-      case "rating":
-        const percentage = ((value ?? 0) / 10) * 100
-        return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700 text-xs min-w-[12px]">{value}</span>
-            <div className="relative flex-1 bg-slate-200 rounded-full h-1.5 min-w-[40px] overflow-hidden">
-              <div
-                className="absolute top-0 left-0 h-full rounded-full transition-all duration-300 bg-gradient-to-r from-green-300 to-blue-300"
-                style={{ width: "100%" }}
-              />
-              <div
-                className="absolute top-0 right-0 h-full bg-white transition-all duration-300"
-                style={{ width: `${100 - percentage}%`, mixBlendMode: "destination-out" }}
-              />
-            </div>
-          </div>
-        )
+ const renderDisplayValue = (columnId: string, value: any, bookId?: number) => {
+  // Si el valor es null, undefined, o string vacío, retornar null
+  if (value === null || value === undefined || value === "" || value === 0) {
+    return null;
+  }
 
-      case "author":
-        const book = books.find((b) => b.id === bookId)
-        const authorName = book?.author?.name || value
-        return (
+  // Para arrays vacíos (como géneros)
+  if (Array.isArray(value) && value.length === 0) {
+    return null;
+  }
+
+  switch (columnId) {
+    case "rating":
+      const percentage = ((value ?? 0) / 10) * 100
+      return (
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-slate-700 text-xs min-w-[12px]">{value}</span>
+          <div className="relative flex-1 bg-slate-200 rounded-full h-1.5 min-w-[40px] overflow-hidden">
+            <div
+              className="absolute top-0 left-0 h-full rounded-full transition-all duration-300 bg-gradient-to-r from-green-300 to-blue-300"
+              style={{ width: "100%" }}
+            />
+            <div
+              className="absolute top-0 right-0 h-full bg-white transition-all duration-300"
+              style={{ width: `${100 - percentage}%`, mixBlendMode: "destination-out" as any }}
+            />
+          </div>
+        </div>
+      )
+
+    case "author":
+      const book = books.find((b) => b.id === bookId)
+      const authorName = book?.author?.name || value
+      // Verificar si realmente hay un autor
+      if (!authorName) return null;
+      
+      return (
+        <Badge
+          variant="outline"
+          style={getBadgeStyle(columnId, authorName)}
+          className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs max-w-full"
+          title={authorName}
+        >
+          <span className="truncate">{authorName}</span>
+        </Badge>
+      )
+
+    case "type":
+    case "publisher":
+    case "language":
+    case "era":
+    case "format":
+    case "audience":
+    case "readingDensity":
+      // Solo mostrar si hay valor
+      if (!value) return null;
+      
+      return (
+        <Badge
+          variant="outline"
+          style={getBadgeStyle(columnId, value)}
+          className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs max-w-full"
+          title={value}
+        >
+          <span className="truncate">{value}</span>
+        </Badge>
+      )
+
+    case "dateStarted":
+    case "dateRead":
+      if (!value) return null;
+      
+      return (
+        <span className="text-slate-600 font-medium text-xs">
+          {new Date(value).toLocaleDateString("es-ES")}
+        </span>
+      )
+
+    case "year":
+      if (!value) return null;
+      
+      return (
+        <div className="text-center">
           <Badge
             variant="outline"
-            style={getBadgeStyle(columnId, authorName)}
+            style={getBadgeStyle("year", value.toString())}
             className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs max-w-full"
-            title={authorName}
-          >
-            <span className="truncate">{authorName}</span>
-          </Badge>
-        )
-      case "type":
-      case "publisher":
-      case "language":
-      case "era":
-      case "format":
-      case "audience":
-      case "readingDensity":
-        return (
-          <Badge
-            variant="outline"
-            style={getBadgeStyle(columnId, value)}
-            className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs max-w-full"
-            title={value}
+            title={value.toString()}
           >
             <span className="truncate">{value}</span>
           </Badge>
-        )
-      case "dateStarted":
-      case "dateRead":
-        return (
-          <span className="text-slate-600 font-medium text-xs">
-            {value ? new Date(value).toLocaleDateString("es-ES") : ""}
-          </span>
-        )
+        </div>
+      )
 
-      case "year":
-        return (
-          <div className="text-center">
-            {value != null && (
-              <div className="text-center">
-                <Badge
-                  variant="outline"
-                  style={getBadgeStyle("year", value.toString())}
-                  className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs max-w-full"
-                  title={value.toString()}
-                >
-                  <span className="truncate">{value}</span>
-                </Badge>
-              </div>
-            )}
-          </div>
-        )
-
-      case "pages":
-        return (
-          <div className="text-center">
-            <span className="inline-flex items-center justify-center px-1 py-0 rounded-md bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 font-semibold text-xs">
-              {value}
-            </span>
-          </div>
-        )
-
-      case "favorite":
-        return (
-          <div className="text-center">
-            {value ? (
-              <div className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-red-100 to-pink-200">
-                <HeartIcon className="h-2.5 w-2.5 text-red-600 fill-red-600" />
-              </div>
-            ) : (
-              <span className="text-slate-400 text-xs">-</span>
-            )}
-          </div>
-        )
-
-      case "awards":
-        return (
-          <div className="text-slate-600 max-w-[220px] font-medium truncate text-xs" title={value}>
+    case "pages":
+      if (!value) return null;
+      
+      return (
+        <div className="text-center">
+          <span className="inline-flex items-center justify-center px-1 py-0 rounded-md bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 font-semibold text-xs">
             {value}
-          </div>
-        )
+          </span>
+        </div>
+      )
 
-      case "universe":
-        const universeName = books.find((b) => b.id === bookId)?.series?.name || value
-        return (
-          <Badge
-            variant="outline"
-            style={getBadgeStyle("universe", universeName)}
-            className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs max-w-full"
-            title={universeName}
-          >
-            <span className="truncate">{universeName}</span>
-          </Badge>
-        )
-      case "genre":
-        const maxVisible = 3
-        return (
-          <div className="relative w-full h-full flex items-center">
-            <div className="flex gap-1 overflow-hidden">
-              {value.slice(0, maxVisible).map((genreId: string) => {
-                const genre = genresOptions.find((g) => g.value === genreId)
-                return genre ? (
-                  <Badge
-                    key={genreId}
-                    variant="outline"
-                    style={getBadgeStyle("genre", genre.label)}
-                    className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs whitespace-nowrap"
-                    title={genre.label}
-                  >
-                    {genre.label}
-                  </Badge>
-                ) : null
-              })}
-            </div>
+    case "awards":
+      if (!value) return null;
+      
+      return (
+        <div className="text-slate-600 max-w-[220px] font-medium truncate text-xs" title={value}>
+          {value}
+        </div>
+      )
+
+    case "universe":
+      const universeName = books.find((b) => b.id === bookId)?.series?.name || value
+      if (!universeName) return null;
+      
+      return (
+        <Badge
+          variant="outline"
+          style={getBadgeStyle("universe", universeName)}
+          className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs max-w-full"
+          title={universeName}
+        >
+          <span className="truncate">{universeName}</span>
+        </Badge>
+      )
+
+    case "genre":
+      const maxVisible = 3
+      // Solo mostrar si hay géneros
+      if (!value || value.length === 0) return null;
+      
+      return (
+        <div className="relative w-full h-full flex items-center">
+          <div className="flex gap-1 overflow-hidden">
+            {value.slice(0, maxVisible).map((genreId: string) => {
+              const genre = genresOptions.find((g) => g.value === genreId)
+              return genre ? (
+                <Badge
+                  key={genreId}
+                  variant="outline"
+                  style={getBadgeStyle("genre", genre.label)}
+                  className="font-medium px-1.5 py-0 rounded-[3px] shadow-sm text-xs whitespace-nowrap"
+                  title={genre.label}
+                >
+                  {genre.label}
+                </Badge>
+              ) : null
+            })}
           </div>
-        )
-      default:
-        return <span className="text-slate-600 text-xs">{value}</span>
-    }
+        </div>
+      )
+
+    case "days":
+      // Este caso lo manejaremos en renderCellContent
+      return null;
+
+    default:
+      // Para otros campos, solo mostrar si hay valor
+      if (!value) return null;
+      return <span className="text-slate-600 text-xs">{value}</span>
   }
+}
 
   const renderCellContent = (columnId: string, book: Book, index: number) => {
     const value = getValueForField(columnId, book)
@@ -702,26 +722,74 @@ export function BookTable({ books, quotesMap, refreshData, onBookSelect, onBookU
     }
 
     if (columnId === "number") {
-      return (
-        <div className="flex items-center justify-center gap-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 -ml-6"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleDeleteClick(book.id)
-            }}
-            title="Eliminar libro"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-          <div className="w-5 h-5 rounded-full bg-[#e6d6f2] text-purple-800 text-xs font-semibold flex items-center justify-center shadow-sm">
-            {book.orden}
-          </div>
-        </div>
-      )
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const newFavoriteValue = !book.favorite
+      const { error } = await supabase
+        .from("books")
+        .update({ favorite: newFavoriteValue })
+        .eq("id", book.id)
+
+      if (error) throw error
+
+      // Actualizar el libro localmente
+      const updatedBook = { ...book, favorite: newFavoriteValue }
+      onBookUpdate(updatedBook)
+      
+      toast.success(newFavoriteValue ? "Libro marcado como favorito" : "Libro desmarcado como favorito")
+    } catch (error) {
+      console.error("Error updating favorite:", error)
+      toast.error("No se pudo actualizar el favorito")
     }
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-1 px-1">
+      {/* Botón de eliminar a la izquierda */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 w-6 p-0 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        onClick={(e) => {
+          e.stopPropagation()
+          handleDeleteClick(book.id)
+        }}
+        title="Eliminar libro"
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
+
+      {/* Número en el centro */}
+      <div className="w-5 h-5 rounded-full bg-[#e6d6f2] text-purple-800 text-xs font-semibold flex items-center justify-center shadow-sm flex-shrink-0">
+        {book.orden}
+      </div>
+
+      {/* Corazón a la derecha */}
+      <div className={`transition-all duration-200 ${
+        book.favorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+      }`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:scale-110 transition-all duration-200"
+          onClick={handleFavoriteClick}
+          title={book.favorite ? "Quitar de favoritos" : "Marcar como favorito"}
+        >
+          {book.favorite ? (
+            // Corazón lleno para favoritos
+            <HeartIcon className="h-3 w-3 fill-red-600" />
+          ) : (
+            // Corazón vacío para no favoritos (con fill="none")
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+}
 
     if (columnId === "title") {
       return (
@@ -753,14 +821,19 @@ export function BookTable({ books, quotesMap, refreshData, onBookSelect, onBookU
     }
 
     if (columnId === "days") {
+      const days = book.start_date && book.end_date
+        ? Math.ceil(
+            (new Date(book.end_date).getTime() - new Date(book.start_date).getTime()) / (1000 * 60 * 60 * 24),
+          )
+        : null;
+
+      // Solo mostrar si hay un valor calculado
+      if (!days) return null;
+
       return (
         <div className="text-center">
           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 text-indigo-700 font-semibold text-xs">
-            {book.start_date && book.end_date
-              ? Math.ceil(
-                  (new Date(book.end_date).getTime() - new Date(book.start_date).getTime()) / (1000 * 60 * 60 * 24),
-                )
-              : "-"}
+            {days}
           </span>
         </div>
       )

@@ -1,5 +1,5 @@
 "use client"
-import { Star, BookOpen, Users, Heart, QuoteIcon, Calendar } from "lucide-react"
+import { Star, BookOpen, Users, Heart, QuoteIcon, Calendar, HeartIcon } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,7 @@ import { useState, useEffect } from "react"
 import { EditableCell } from "./EditableCell"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
+import { Button } from "./ui/button"
 
 interface BookDetailsModalProps {
   book: Book | null
@@ -246,59 +247,27 @@ export function BookDetailsModal({ book, isOpen, onOpenChange, quotes, onBookUpd
     }
   }
 
-  const getValueForField = (field: string) => {
-    if (!book) return null
+  const handleFavoriteClick = async () => {
+    if (!book) return
+    
+    try {
+      const newFavoriteValue = !book.favorite
+      const { error } = await supabase
+        .from("books")
+        .update({ favorite: newFavoriteValue })
+        .eq("id", book.id)
 
-    const fieldValues: Record<string, any> = {
-      title: book.title,
-      review: book.review,
-      type: book.type,
-      publisher: book.publisher,
-      language: book.language,
-      era: book.era,
-      format: book.format,
-      audience: book.audience,
-      reading_difficulty: book.reading_difficulty,
-      year: book.year,
-      pages: book.pages,
-      awards: book.awards,
-      favorite: book.favorite,
-      series: book.series?.id?.toString(),
-      author: book.author?.id?.toString(),
-      rating: book.rating,
-      start_date: book.start_date,
-      end_date: book.end_date,
-      image_url: book.image_url,
-      summary: book.summary,
-      main_characters: book.main_characters,
-      favorite_character: book  .favorite_character,
+      if (error) throw error
+
+      // Actualizar el libro localmente
+      const updatedBook = { ...book, favorite: newFavoriteValue }
+      onBookUpdate(updatedBook)
+      
+      toast.success(newFavoriteValue ? "Libro marcado como favorito" : "Libro desmarcado como favorito")
+    } catch (error) {
+      console.error("Error updating favorite:", error)
+      toast.error("No se pudo actualizar el favorito")
     }
-
-    return fieldValues[field] ?? null
-  }
-
-  const refreshAuthors = async () => {
-    const { data: authors } = await supabase.from("authors").select("id, name").order("name", { ascending: true })
-    setOptions((prev) => ({
-      ...prev,
-      author: authors?.map((a) => ({ value: a.id.toString(), label: a.name, id: a.id })) || [],
-    }))
-  }
-
-  const refreshSeries = async () => {
-    const { data: series } = await supabase.from("series").select("id, name").order("name", { ascending: true })
-    setOptions((prev) => ({
-      ...prev,
-      series: series?.map((s) => ({ value: s.id.toString(), label: s.name, id: s.id })) || [],
-    }))
-  }
-
-  const refreshGenres = async () => {
-    const { data: genres } = await supabase.from("genres").select("id, name").order("name", { ascending: true })
-    setOptions((prev) => ({
-      ...prev,
-      genre: genres?.map((g) => ({ value: g.id.toString(), label: g.name, id: g.id })) || [],
-    }))
   }
 
   const renderEditableField = (section: string, field: string, label: string, value: any, options: any[] = []) => {
@@ -716,44 +685,65 @@ export function BookDetailsModal({ book, isOpen, onOpenChange, quotes, onBookUpd
     )
   }
 
-  const renderRatingField = () => {
+  const renderRatingAndFavoriteField = () => {
     if (!book) return null
-    const isEditing = editingField?.section === "left" && editingField?.field === "rating"
+    
+    const isEditingRating = editingField?.section === "left" && editingField?.field === "rating"
     const hasRating = book.rating !== undefined && book.rating !== null
 
-    if (isEditing) {
-      return (
-        <div className="flex items-center justify-center gap-1">
-          <EditableCell
-            book={book!}
-            columnId="rating"
-            value={book.rating}
-            options={[]}
-            onSave={(newValue) => handleSave("rating", newValue)}
-            onCancel={() => setEditingField(null)}
-          />
-        </div>
-      )
-    }
-
     return (
-      <div
-        className="flex items-center justify-center gap-1 cursor-pointer group p-2 rounded-lg hover:bg-purple-50 transition-colors"
-        onClick={() => setEditingField({ section: "left", field: "rating" })}
-      >
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`h-5 w-5 ${
-              i < (book.rating || 0)
-                ? "fill-yellow-400 text-yellow-400 hover:fill-yellow-500"
-                : "text-gray-300 hover:fill-purple-200 hover:text-purple-200"
-            } transition-colors`}
-          />
-        ))}
-        <span className="ml-2 text-sm font-medium text-gray-400 hover:text-purple-600 transition-colors">
-          {book.rating || ""}
-        </span>
+      <div className="flex items-center justify-center gap-4">
+        {/* Rating */}
+        {isEditingRating ? (
+          <div className="flex items-center gap-1">
+            <EditableCell
+              book={book!}
+              columnId="rating"
+              value={book.rating}
+              options={[]}
+              onSave={(newValue) => handleSave("rating", newValue)}
+              onCancel={() => setEditingField(null)}
+            />
+          </div>
+        ) : (
+          <div
+            className="flex items-center justify-center gap-1 cursor-pointer group p-2 rounded-lg hover:bg-purple-50 transition-colors"
+            onClick={() => setEditingField({ section: "left", field: "rating" })}
+          >
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`h-5 w-5 ${
+                  i < (book.rating || 0)
+                    ? "fill-yellow-400 text-yellow-400 hover:fill-yellow-500"
+                    : "text-gray-300 hover:fill-purple-200 hover:text-purple-200"
+                } transition-colors`}
+              />
+            ))}
+            <span className="ml-2 text-sm font-medium text-gray-400 hover:text-purple-600 transition-colors">
+              {book.rating || ""}
+            </span>
+          </div>
+        )}
+
+        {/* Favorito */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:scale-110 transition-all duration-200"
+            onClick={handleFavoriteClick}
+            title={book.favorite ? "Quitar de favoritos" : "Marcar como favorito"}
+          >
+            {book.favorite ? (
+              <HeartIcon className="h-4 w-4 fill-red-600" />
+            ) : (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            )}
+          </Button>
+        </div>
       </div>
     )
   }
@@ -834,7 +824,7 @@ export function BookDetailsModal({ book, isOpen, onOpenChange, quotes, onBookUpd
                   </div>
 
                   {/* Rating */}
-                  {book.rating !== undefined && renderRatingField()}
+                  {book.rating !== undefined && renderRatingAndFavoriteField()}
 
                   {/* One line summary */}
                   {renderReviewField()}
@@ -922,7 +912,6 @@ export function BookDetailsModal({ book, isOpen, onOpenChange, quotes, onBookUpd
                           {renderReadingDifficultyField()}
 
                           <div className="grid grid-cols-1 gap-3">
-                            {renderFavoriteField()}
                             {renderEditableField("details", "awards", "Premios", book.awards || "", [])}
                           </div>
                         </div>
