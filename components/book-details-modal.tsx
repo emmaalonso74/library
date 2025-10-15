@@ -799,10 +799,14 @@ export function BookDetailsModal({ book, isOpen, onOpenChange, quotes, onBookUpd
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
-        {/* Overlay transparente cuando hay un campo en edición */}
+        {/* Overlay que cubre TODO excepto los componentes editables */}
         {editingField && (
-          <div className="fixed inset-0 bg-transparent z-60 cursor-default" onClick={() => setEditingField(null)} />
+          <div 
+            className="fixed inset-0 bg-black z-40 cursor-pointer" 
+            onClick={() => setEditingField(null)}
+          />
         )}
+        
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl font-bold text-purple-800">{book.title}</DialogTitle>
         </DialogHeader>
@@ -934,7 +938,7 @@ export function BookDetailsModal({ book, isOpen, onOpenChange, quotes, onBookUpd
 
                           {book.start_date && book.end_date && (
                             <div className="bg-white/60 rounded-lg p-3">
-                              <Label className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">
+                              <Label className="text-xs font-semitero text-emerald-500 uppercase tracking-wide">
                                 ⏱️ Días de Lectura
                               </Label>
                               <p className="text-sm mt-1 font-bold text-emerald-900">

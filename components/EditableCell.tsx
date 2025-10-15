@@ -59,23 +59,37 @@ export const EditableCell: React.FC<EditableCellProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const multiSelectRef = useRef<any>(null)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
+  const [autoOpenMultiSelect, setAutoOpenMultiSelect] = useState(false)
+
+  // Determinar qué campos deben abrir el MultiSelect automáticamente
+  const isMultiSelectField = [
+    "genre", "type", "publisher", "language", "era", 
+    "format", "audience", "readingDensity", "author", "universe"
+  ].includes(columnId)
 
   useEffect(() => {
-    if (inputRef.current && !["dateStarted", "dateRead", "genre", "review", "image_url"].includes(columnId)) {
+    // Para campos MultiSelect, activar el auto-open después de un pequeño delay
+    if (isMultiSelectField) {
+      const timer = setTimeout(() => {
+        setAutoOpenMultiSelect(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+
+    // Para otros campos, enfocar normalmente
+    if (inputRef.current && !["dateStarted", "dateRead", "review", "image_url"].includes(columnId)) {
       inputRef.current.focus()
     }
     if (textareaRef.current && columnId === "review") {
       textareaRef.current.focus()
     }
-    if (multiSelectRef.current && ["genre", "type", "publisher", "language", "era", "format", "audience", "readingDensity", "author", "universe"].includes(columnId)) {
-      multiSelectRef.current.focus()
-    }
-  }, [columnId])
+  }, [columnId, isMultiSelectField])
 
   const handleSave = async (newValue?: any, isNewItem: boolean = false) => {
     const valueToSave = newValue !== undefined ? newValue : editValue
     
     try {
+      // ... (el resto de handleSave permanece igual)
       // Validación específica para rating
       if (columnId === "rating") {
         const ratingValue = parseFloat(valueToSave);
@@ -296,6 +310,47 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     }))
   }
 
+  // Renderizar MultiSelect con auto-open
+  const renderMultiSelect = (props: any = {}) => (
+    <div className="absolute z-50 bg-white shadow-lg rounded-md border min-w-[250px]">
+      <MultiSelect
+        ref={multiSelectRef}
+        options={props.options || options}
+        selected={props.selected || (editValue ? [editValue] : [])}
+        onChange={props.onChange || handleMultiSelectChange}
+        singleSelect={props.singleSelect !== false}
+        className="text-sm p-2"
+        onKeyDown={handleKeyDown}
+        placeholder={props.placeholder || `Selecciona ${columnId}`}
+        tableName={props.tableName}
+        returnId={props.returnId}
+        refreshOptions={refreshOptions}
+        creatable={props.creatable !== false}
+        columnId={columnId}
+        autoOpen={autoOpenMultiSelect} // ← Esta es la clave
+      />
+      {props.showButtons && (
+        <div className="p-1 border-t flex justify-end gap-1 text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 border-violet-300 text-violet-400 hover:bg-violet-100 text-xs"
+            onClick={onCancel}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            className="h-6 px-2 bg-violet-200 text-violet-700 hover:bg-violet-300 text-xs"
+            onClick={() => handleSave(editValue)}
+          >
+            Guardar
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+
   switch (columnId) {
     case "title":
     case "awards":
@@ -377,40 +432,16 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       )
 
     case "genre":
-      return (
-        <div className="absolute z-50 bg-white shadow-lg rounded-md border min-w-[250px]">
-          <MultiSelect
-            ref={multiSelectRef}
-            options={getGenreOptions()}
-            selected={getSelectedGenreValues()}
-            onChange={handleGenreChange}
-            className="text-sm p-2"
-            placeholder="Selecciona géneros"
-            tableName="genres"
-            returnId={true}
-            refreshOptions={refreshOptions}
-            creatable={true}
-            columnId={columnId} // Pasar el columnId para colores consistentes
-          />
-          <div className="p-1 border-t flex justify-end gap-1 text-xs">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 px-2 border-violet-300 text-violet-400 hover:bg-violet-100 text-xs"
-              onClick={onCancel}
-            >
-              Cancelar
-            </Button>
-            <Button
-              size="sm"
-              className="h-6 px-2 bg-violet-200 text-violet-700 hover:bg-violet-300 text-xs"
-              onClick={() => handleSave(editValue)}
-            >
-              Guardar
-            </Button>
-          </div>
-        </div>
-      )
+      return renderMultiSelect({
+        options: getGenreOptions(),
+        selected: getSelectedGenreValues(),
+        onChange: handleGenreChange,
+        placeholder: "Selecciona géneros",
+        tableName: "genres",
+        returnId: true,
+        creatable: true,
+        showButtons: true
+      })
 
     case "type":
     case "publisher":
@@ -419,45 +450,23 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     case "format":
     case "audience":
     case "readingDensity":
-      return (
-        <div className="absolute z-50 bg-white shadow-lg rounded-md border min-w-[250px]">
-          <MultiSelect
-            ref={multiSelectRef}
-            options={options}
-            selected={editValue ? [editValue] : []}
-            onChange={handleMultiSelectChange}
-            singleSelect
-            className="text-sm p-2"
-            onKeyDown={handleKeyDown}
-            placeholder={`Selecciona ${columnId}`}
-            creatable={true}
-            columnId={columnId} // Pasar el columnId para colores consistentes
-          />
-        </div>
-      )
+      return renderMultiSelect({
+        singleSelect: true,
+        creatable: true
+      })
 
     case "author":
     case "universe":
-      return (
-        <div className="absolute z-50 bg-white shadow-lg rounded-md border min-w-[250px]">
-          <MultiSelect
-            ref={multiSelectRef}
-            options={options}
-            selected={editValue ? [editValue] : []}
-            onChange={handleAuthorUniverseChange}
-            singleSelect
-            className="text-sm p-2"
-            onKeyDown={handleKeyDown}
-            placeholder={`Selecciona ${columnId === 'universe' ? 'un universo' : columnId}`}
-            tableName={getTableName(columnId)}
-            returnId={true}
-            refreshOptions={refreshOptions}
-            creatable={true}
-            columnId={columnId} // Pasar el columnId para colores consistentes
-          />
-        </div>
-      )
+      return renderMultiSelect({
+        singleSelect: true,
+        placeholder: `Selecciona ${columnId === 'universe' ? 'un universo' : columnId}`,
+        tableName: getTableName(columnId),
+        returnId: true,
+        creatable: true,
+        onChange: handleAuthorUniverseChange
+      })
 
+    // ... (el resto de los casos permanece igual)
     case "favorite":
       return (
         <div className="absolute z-50 bg-white shadow-md rounded-lg border border-violet-200 p-2 w-[150px]">

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useMemo } from "react"
+import { useState, useRef, useMemo, useEffect } from "react" // Agregar useEffect
 import { Check, ChevronsUpDown, Plus, X, Trash2 } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -23,7 +23,8 @@ interface MultiSelectProps {
   tableName?: "authors" | "series" | "genres"
   refreshOptions?: () => Promise<void>
   returnId?: boolean
-  columnId?: string // Nueva prop para identificar la columna
+  columnId?: string
+  autoOpen?: boolean // Nueva prop para auto-abrir
 }
 
 const colorClasses = AVAILABLE_COLORS;
@@ -39,7 +40,8 @@ export function MultiSelect({
   tableName,
   refreshOptions,
   returnId = false,
-  columnId = "multiselect", // Valor por defecto
+  columnId = "multiselect",
+  autoOpen = false, // Valor por defecto
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState("")
@@ -47,6 +49,18 @@ export function MultiSelect({
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [localNewItems, setLocalNewItems] = useState<{ value: string; label: string; id?: number }[]>([])
+
+  // Efecto para auto-abrir el popover cuando se solicita
+  useEffect(() => {
+    if (autoOpen) {
+      setOpen(true)
+      // Enfocar el input después de un pequeño delay para asegurar que el popover esté abierto
+      const timer = setTimeout(() => {
+        inputRef.current?.focus()
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [autoOpen])
 
   // Función para verificar si existe una coincidencia exacta (case insensitive)
   const hasExactMatch = (searchValue: string) => {
