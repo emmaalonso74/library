@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import type { Book } from "@/lib/types"
 import { AVAILABLE_COLORS, getConsistentColorIndex } from "@/lib/colors";
+import { StarRating, EmptyStarRating } from "./book-components"
 
 interface BookCardProps {
   book: Book
@@ -73,13 +74,20 @@ export function BookCard({ book }: BookCardProps) {
             )}
           </div>
           
-          <div className="flex items-center gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className={`h-2.5 w-2.5 ${i < Math.round((book.rating ?? 0) / 2) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+          <div className="flex items-center">
+            {book.rating ? (
+              <StarRating 
+                rating={book.rating} 
+                size={2.5} 
+                showNumber={false}
+                className="justify-end"
               />
-            ))}
+            ) : (
+              <EmptyStarRating 
+                size={2.5}
+                className="justify-end"
+              />
+            )}
           </div>
         </div>
 

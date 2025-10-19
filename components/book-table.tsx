@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { GripVertical, Trash2, Eye } from "lucide-react"
+import { GripVertical, Trash2, Eye, Heart } from "lucide-react"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { ConfirmDeleteDialog } from "./confirm-delete-dialog"
 import { EditableCell } from "./EditableCell"
 import { AVAILABLE_COLORS, getConsistentColorIndex } from "@/lib/colors"
+import {FavoriteButton } from "./book-components"
 
 interface BookTableProps {
   books: Book[]
@@ -722,91 +723,92 @@ export function BookTable({ books, quotesMap, refreshData, onBookSelect, onBookU
     }
 
     if (columnId === "number") {
-  const handleFavoriteClick = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    try {
-      const newFavoriteValue = !book.favorite
-      const { error } = await supabase
-        .from("books")
-        .update({ favorite: newFavoriteValue })
-        .eq("id", book.id)
+      const handleFavoriteClick = async () => {
+        try {
+          const newFavoriteValue = !book.favorite
+          const { error } = await supabase
+            .from("books")
+            .update({ favorite: newFavoriteValue })
+            .eq("id", book.id)
 
-      if (error) throw error
+          if (error) throw error
 
-      // Actualizar el libro localmente
-      const updatedBook = { ...book, favorite: newFavoriteValue }
-      onBookUpdate(updatedBook)
-      
-      toast.success(newFavoriteValue ? "Libro marcado como favorito" : "Libro desmarcado como favorito")
-    } catch (error) {
-      console.error("Error updating favorite:", error)
-      toast.error("No se pudo actualizar el favorito")
+          const updatedBook = { ...book, favorite: newFavoriteValue }
+          onBookUpdate(updatedBook)
+
+          toast.success(newFavoriteValue ? "Libro marcado como favorito" : "Libro desmarcado como favorito")
+        } catch (error) {
+          console.error("Error updating favorite:", error)
+          toast.error("No se pudo actualizar el favorito")
+        }
+      }
+
+      return (
+        <div className="flex items-center justify-between gap-1 px-1">
+          {/* Botón de eliminar a la izquierda */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDeleteClick(book.id)
+            }}
+            title="Eliminar libro"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+
+          {/* Número en el centro */}
+          <div className="w-5 h-5 rounded-full bg-[#e6d6f2] text-purple-800 text-xs font-semibold flex items-center justify-center shadow-sm flex-shrink-0">
+            {book.orden}
+          </div>
+
+          {/* Corazón a la derecha */}
+          <div className={`transition-all duration-200 ${
+            book.favorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}>
+            <FavoriteButton
+              isFavorite={book.favorite || false}
+              onToggle={() => handleFavoriteClick()}
+              size="sm"
+              showTooltip={true}
+              className="h-6 w-6"
+            />
+          </div>          
+        </div>
+      )
     }
-  }
-
-  return (
-    <div className="flex items-center justify-between gap-1 px-1">
-      {/* Botón de eliminar a la izquierda */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 w-6 p-0 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-        onClick={(e) => {
-          e.stopPropagation()
-          handleDeleteClick(book.id)
-        }}
-        title="Eliminar libro"
-      >
-        <Trash2 className="h-3 w-3" />
-      </Button>
-
-      {/* Número en el centro */}
-      <div className="w-5 h-5 rounded-full bg-[#e6d6f2] text-purple-800 text-xs font-semibold flex items-center justify-center shadow-sm flex-shrink-0">
-        {book.orden}
-      </div>
-
-      {/* Corazón a la derecha */}
-      <div className={`transition-all duration-200 ${
-        book.favorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-      }`}>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:scale-110 transition-all duration-200"
-          onClick={handleFavoriteClick}
-          title={book.favorite ? "Quitar de favoritos" : "Marcar como favorito"}
-        >
-          {book.favorite ? (
-            // Corazón lleno para favoritos
-            <HeartIcon className="h-3 w-3 fill-red-600" />
-          ) : (
-            // Corazón vacío para no favoritos (con fill="none")
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          )}
-        </Button>
-      </div>
-    </div>
-  )
-}
 
     if (columnId === "title") {
       return (
         <div
-          className="font-semibold text-slate-800 max-w-[220px] relative flex items-center gap-2 cursor-pointer"
+          className="font-semibold text-slate-800 w-full relative flex items-center gap-2 cursor-pointer group/title"
           onClick={handleClickToEdit}
           onMouseEnter={() => setHoveredTitle(index)}
           onMouseLeave={() => setHoveredTitle(null)}
         >
-          <div className="truncate" title={book.title}>
-            {book.title}
+          {/* Contenedor principal del título que se expande */}
+          <div 
+            className="flex-1 overflow-hidden"
+            style={{ 
+              minWidth: 0 // Esto es crucial para que funcione flexbox con text-overflow
+            }}
+          >
+            <span 
+              className="whitespace-nowrap text-ellipsis overflow-hidden block w-full"
+              title={book.title}
+            >
+              {book.title}
+            </span>
           </div>
-          {hoveredTitle === index && (
+          
+          {/* Botón de vista que solo aparece al hacer hover */}
+          <div className="flex-shrink-0 opacity-0 group-hover/title:opacity-100 transition-opacity duration-200">
             <Button
               variant="ghost"
               size="sm"
-              className="h-5 w-5 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-shrink-0 rounded-full transition-all duration-200 hover:scale-110"
+              className="h-5 w-5 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-all duration-200 hover:scale-110"
               onClick={(e) => {
                 e.stopPropagation()
                 handleViewBook(book.id)
@@ -815,7 +817,7 @@ export function BookTable({ books, quotesMap, refreshData, onBookSelect, onBookU
             >
               <Eye className="h-3 w-3" />
             </Button>
-          )}
+          </div>
         </div>
       )
     }
@@ -931,19 +933,6 @@ export function BookTable({ books, quotesMap, refreshData, onBookSelect, onBookU
               ))}
             </tbody>
           </table>
-        </div>
-
-        <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-purple-50 px-6 py-2 text-xs text-slate-600 border-t border-purple-200 font-medium">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              Pasa el cursor por el título para ver detalles
-            </span>
-            <span className="flex items-center gap-1">
-              <GripVertical className="h-3 w-3" />
-              Arrastra las columnas para reordenar
-            </span>
-          </div>
         </div>
       </Card>
     </div>

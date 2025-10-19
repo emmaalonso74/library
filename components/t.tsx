@@ -1,5 +1,5 @@
 "use client"
-import { Star, BookOpen, Users, Heart, QuoteIcon, Calendar, UserPlus, PenLine, Plus, File, Circle, StarHalf } from "lucide-react"
+import { Star, BookOpen, Users, Heart, QuoteIcon, Calendar, HeartIcon } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
@@ -14,7 +14,6 @@ import { EditableCell } from "./EditableCell"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import { Button } from "./ui/button"
-import { StarRating, EmptyStarRating, FavoriteButton } from "./book-components"
 
 interface BookDetailsModalProps {
   book: Book | null
@@ -268,15 +267,8 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
     }
   }
 
-  const renderEditableField = (section: string, field: string, label: string, value: any, options: any[] = [], color: "purple" | "blue" | "emerald" = "purple" ) => {
+  const renderEditableField = (section: string, field: string, label: string, value: any, options: any[] = []) => {
     const isEditing = editingField?.section === section && editingField?.field === field
-    const colorClasses = {
-      purple: {label: "text-purple-500",text: "text-purple-900",},
-      blue: {label: "text-blue-500", text: "text-blue-900",},
-      emerald: {label: "text-emerald-500",text: "text-emerald-900",}
-    }
-
-    const colors = colorClasses[color]
 
     if (isEditing) {
       return (
@@ -301,8 +293,8 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
         className="bg-white/60 rounded-lg p-3 cursor-pointer hover:bg-white/80 transition-colors group relative"
         onClick={() => setEditingField({ section, field })}
       >
-        <Label className={`text-xs font-semibold ${colors.label} uppercase tracking-wide`}>{label}</Label>
-        <p className={`text-sm mt-1 font-semibold ${colors.text}`}>{value || ""}</p>
+        <Label className="text-xs font-semibold text-purple-500 uppercase tracking-wide">{label}</Label>
+        <p className="text-sm mt-1 font-semibold text-purple-900">{value || ""}</p>
       </div>
     )
   }
@@ -354,6 +346,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
     if (isEditing) {
       return (
         <div className="bg-white/60 rounded-lg p-3">
+          <Label className="text-xs font-semibold text-purple-500 uppercase tracking-wide">Resumen</Label>
           <div className="mt-1">
             <EditableCell
               book={book!}
@@ -373,6 +366,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
         className="bg-white/60 rounded-lg p-3 cursor-pointer hover:bg-white/80 transition-colors group relative"
         onClick={() => setEditingField({ section: "opinion", field: "summary" })}
       >
+        <Label className="text-xs font-semibold text-purple-500 uppercase tracking-wide">Resumen</Label>
         <p className="text-sm mt-1 italic text-purple-700">
           {book.summary ? `"${book.summary}"` : "No hay resumen disponible"}
         </p>
@@ -414,7 +408,9 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
           <ul className="space-y-3 mt-1">
             {book.main_characters.split(",").map((character, index) => (
               <li key={index} className="flex items-center gap-3">
-                <Circle className="h-2.5 w-2.5 flex-shrink-0 fill-purple-500 text-purple-500" />
+                <svg className="h-2.5 w-2.5 flex-shrink-0" viewBox="0 0 10 10" fill="#a855f7">
+                  <circle cx="5" cy="5" r="5" />
+                </svg>
                 <span className="text-gray-800 font-medium capitalize">{character.trim()}</span>
               </li>
             ))}
@@ -527,21 +523,25 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
       </div>
     )
   }
-  const renderAuthorField = () => {
+
+  const renderFavoriteField = () => {
     if (!book) return null
-    const isEditing = editingField?.section === "left" && editingField?.field === "author"
-    const hasAuthor = !!book.author?.name
+    const isEditing = editingField?.section === "details" && editingField?.field === "favorite"
 
     if (isEditing) {
       return (
-        <div className="bg-white/60 rounded-lg p-3 relative" style={{ zIndex: 9999 }}>
+        <div className="bg-white/60 rounded-lg p-3">
+          <Label className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Favorito</Label>
           <div className="mt-1">
             <EditableCell
               book={book!}
-              columnId="author"
-              value={book.author?.id?.toString() || ""}
-              options={options.author || []}
-              onSave={(newValue) => handleSave("author", newValue)}
+              columnId="favorite"
+              value={book.favorite}
+              options={[]}
+              onSave={(newValue) => {
+                handleSave("favorite", newValue)
+                setEditingField(null)
+              }}
               onCancel={() => setEditingField(null)}
             />
           </div>
@@ -551,24 +551,22 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
 
     return (
       <div
-        className="cursor-pointer group relative min-h-[60px] rounded-lg border-2 border-dashed border-transparent group-hover:border-purple-200 transition-all flex items-center justify-center"
-        onClick={() => setEditingField({ section: "left", field: "author" })}
+        className="bg-white/60 rounded-lg p-3 cursor-pointer hover:bg-white/80 transition-colors group relative"
+        onClick={() => setEditingField({ section: "details", field: "favorite" })}
       >
-        {hasAuthor ? (
-          <div className="bg-white/60 rounded-lg p-3 w-full">
-            <p className="text-sm mt-1 font-semibold text-purple-900">{book.author?.name}</p>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full opacity-60 group-hover:opacity-100 transition-opacity w-full">
-            <div className="text-center text-gray-400 group-hover:text-purple-500 transition-colors">
-              <UserPlus className="w-6 h-6 mx-auto mb-1" />
-            </div>
-          </div>
-        )}
+        <Label className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Favorito</Label>
+        <div className="flex items-center gap-2 mt-1">
+          {book.favorite ? (
+            <Badge className="bg-pink-100 text-pink-800 border-pink-300 font-semibold">❤️ Favorito</Badge>
+          ) : (
+            <p></p>
+          )}
+        </div>
       </div>
     )
   }
-  const renderDateField = (field: "start_date" | "end_date", label: string) => {
+
+  const renderDateField = (field: "start_date" | "end_date", label: string, icon: string) => {
     if (!book) return null
     const isEditing = editingField?.section === "dates" && editingField?.field === field
     const dateValue = field === "start_date" ? book.start_date : book.end_date
@@ -577,7 +575,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
       return (
         <div className="bg-white/60 rounded-lg p-3">
           <Label className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">
-            {label}
+            {icon} {label}
           </Label>
           <div className="mt-1">
             <EditableCell
@@ -599,7 +597,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
         onClick={() => setEditingField({ section: "dates", field })}
       >
         <Label className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">
-         {label}
+          {icon} {label}
         </Label>
         <p className="text-sm mt-1 font-bold text-emerald-900">
           {dateValue ? new Date(dateValue).toLocaleDateString("es-ES") : ""}
@@ -644,6 +642,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
 
     if (isEditing) {
       return (
+        <div className="bg-white/60 p-3 rounded-lg relative" style={{ zIndex: 9999 }}>
           <EditableCell
             book={book!}
             columnId="review"
@@ -652,6 +651,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
             onSave={(newValue) => handleSave("review", newValue)}
             onCancel={() => setEditingField(null)}
           />
+        </div>
       )
     }
 
@@ -667,7 +667,14 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
         ) : (
           <div className="flex items-center justify-center h-full opacity-60 group-hover:opacity-100 transition-opacity">
             <div className="text-center text-gray-400 group-hover:text-purple-500 transition-colors">
-              <PenLine className="w-6 h-6 mx-auto mb-1" />
+              <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
             </div>
           </div>
         )}
@@ -700,32 +707,49 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
             className="flex items-center justify-center gap-1 cursor-pointer group p-2 rounded-lg hover:bg-purple-50 transition-colors"
             onClick={() => setEditingField({ section: "left", field: "rating" })}
           >
-            {hasRating ? (
-              <StarRating 
-                rating={book.rating!} 
-                size={5}
-                className="group-hover:text-purple-600 transition-colors"
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`h-5 w-5 ${
+                  i < (book.rating || 0)
+                    ? "fill-yellow-400 text-yellow-400 hover:fill-yellow-500"
+                    : "text-gray-300 hover:fill-purple-200 hover:text-purple-200"
+                } transition-colors`}
               />
-            ) : (
-              <EmptyStarRating 
-                size={5}
-                className="group-hover:text-purple-600 transition-colors"
-              />
-            )}
+            ))}
+            <span className="ml-2 text-sm font-medium text-gray-400 hover:text-purple-600 transition-colors">
+              {book.rating || ""}
+            </span>
           </div>
         )}
 
-        {/* Favorito (mantener igual) */}
-        <FavoriteButton
-          isFavorite={book.favorite || false}
-          onToggle={handleFavoriteClick}
-          size="md"
-          showTooltip={true}
-        />
+        {/* Favorito */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:scale-110 transition-all duration-200"
+            onClick={handleFavoriteClick}
+            title={book.favorite ? "Quitar de favoritos" : "Marcar como favorito"}
+          >
+            {book.favorite ? (
+              <HeartIcon className="h-4 w-4 fill-red-600" />
+            ) : (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+            )}
+          </Button>
+        </div>
       </div>
     )
   }
-  
+
   const renderGenresField = () => {
     if (!book) return null
 
@@ -765,7 +789,9 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
         ) : (
           <div className="flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
             <div className="text-center text-gray-400 group-hover:text-purple-500 transition-colors">
-              <Plus className="w-6 h-6 mx-auto mb-1" />
+              <svg className="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
             </div>
           </div>
         )}
@@ -781,7 +807,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
         {/* Overlay que cubre TODO excepto los componentes editables */}
         {editingField && (
-          <div className="fixed inset-0 bg-transparent z-40 cursor-pointer" onClick={() => setEditingField(null)} />
+          <div className="fixed inset-0 bg-black/50 z-40 cursor-pointer" onClick={() => setEditingField(null)} />
         )}
 
         <DialogHeader className="flex-shrink-0">
@@ -798,7 +824,9 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
 
                   <div className="space-y-2">
                     {renderTitleField()}
-                    {renderAuthorField()}
+
+                    {renderEditableField("left", "author", "", book.author?.name || "", options.author || [])}
+
                     {renderGenresField()}
                   </div>
 
@@ -873,19 +901,19 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 gap-3">
-                          {renderEditableField("details", "era", "Época", book.era || "", options.era || [], "blue")}
-                          {renderEditableField("details", "format", "Formato", book.format || "", options.format || [], "blue")}
+                          {renderEditableField("details", "era", "Época", book.era || "", options.era || [])}
+                          {renderEditableField("details", "format", "Formato", book.format || "", options.format || [])}
                           {renderEditableField(
                             "details",
                             "audience",
                             "Público",
                             book.audience || "",
-                            options.audience || [], "blue"
+                            options.audience || [],
                           )}
                           {renderReadingDifficultyField()}
 
                           <div className="grid grid-cols-1 gap-3">
-                            {renderEditableField("details", "awards", "Premios", book.awards || "", [], "blue")}
+                            {renderEditableField("details", "awards", "Premios", book.awards || "", [])}
                           </div>
                         </div>
                       </CardContent>
@@ -902,13 +930,13 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
                       <CardContent className="space-y-4">
                         {/* Fechas */}
                         <div className="space-y-3">
-                          {renderDateField("start_date", "Start Date")}
-                          {renderDateField("end_date", "Fecha de Finalización")}
+                          {renderDateField("start_date", "Start Date", "📅")}
+                          {renderDateField("end_date", "Fecha de Finalización", "🏁")}
 
                           {book.start_date && book.end_date && (
                             <div className="bg-white/60 rounded-lg p-3">
                               <Label className="text-xs font-semitero text-emerald-500 uppercase tracking-wide">
-                                Días de Lectura
+                                ⏱️ Días de Lectura
                               </Label>
                               <p className="text-sm mt-1 font-bold text-emerald-900">
                                 {Math.ceil(
@@ -931,7 +959,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
                   <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg h-full">
                     <CardHeader>
                       <CardTitle className="text-purple-800 flex items-center gap-2">
-                        <File className="h-5 w-5" />
+                        <Star className="h-5 w-5" />
                         Resumen
                       </CardTitle>
                     </CardHeader>

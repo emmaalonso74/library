@@ -350,6 +350,24 @@ export const EditableCell: React.FC<EditableCellProps> = ({
       )}
     </div>
   )
+  const renderTextarea = (width: string, minHeight: string, placeholder?: string) => (
+      <Textarea
+        value={editValue || ""}
+        onChange={(e) => setEditValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault()
+            handleSave()
+          }
+          if (e.key === "Escape") {
+            onCancel()
+          }
+        }}
+        className={`text-sm resize-none ${minHeight}`}
+        placeholder={placeholder}
+        ref={textareaRef}
+      />
+  )
 
   switch (columnId) {
     case "title":
@@ -369,16 +387,17 @@ export const EditableCell: React.FC<EditableCellProps> = ({
     case "pages":
     case "year":
       return (
-        <div className="absolute z-50 bg-white shadow-lg rounded-md border p-2">
           <Input
             type="number"
             min={columnId === "rating" ? "1" : "1"}
             max={columnId === "rating" ? "10" : undefined}
             step={columnId === "rating" ? "1" : "1"}
             value={editValue || ""}
-            {...commonInputProps}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="absolute z-50 w-[75px] text-xs px-2 py-1 h-7 bg-white shadow-sm"
+            ref={inputRef}
           />
-        </div>
       )
 
     case "dateStarted":
@@ -487,46 +506,10 @@ export const EditableCell: React.FC<EditableCellProps> = ({
         </div>
       )
     case "summary":
-      return (
-        <div className="absolute z-50 bg-white shadow-lg rounded-md border p-2 w-[600px]">
-          <Textarea
-            value={editValue || ""}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && e.ctrlKey) {
-                e.preventDefault()
-                handleSave()
-              }
-              if (e.key === "Escape") {
-                onCancel()
-              }
-            }}
-            className="text-sm resize-none min-h-[400px]"
-            ref={textareaRef}
-          />
-        </div>
-      )
+      return renderTextarea("w-[600px]", "min-h-[400px]", "Escribe el resumen del libro...")
 
     case "review":
-      return (
-        <div className="absolute z-50 bg-white shadow-lg rounded-md border p-2 w-[300px]">
-          <Textarea
-            value={editValue || ""}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && e.ctrlKey) {
-                e.preventDefault()
-                handleSave()
-              }
-              if (e.key === "Escape") {
-                onCancel()
-              }
-            }}
-            className="text-sm resize-none min-h-[100px]"
-            ref={textareaRef}
-          />
-        </div>
-      )
+      return renderTextarea("w-[300px]", "min-h-[100px]", "Escribe tu reseña...")
 
     case "main_characters":
     case "favorite_character":

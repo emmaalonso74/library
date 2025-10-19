@@ -90,7 +90,7 @@ export function MultiSelect({
 
   const handleSelect = (value: string, id?: number) => {
     if (selected.includes(value)) {
-      onChange(selected.filter((item) => item !== value))
+      return;
     } else {
       if (singleSelect) {
         onChange([value], { value, label: value, id })
@@ -237,7 +237,7 @@ export function MultiSelect({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between focus:border-purple-400 focus:ring-1 focus:ring-purple-200 h-6 min-h-6 py-1",
+              "w-full justify-between focus:border-purple-400 focus:ring-1 focus:ring-purple-200 h-6 min-h-6 py-1 text-xs",
               className,
             )}
           >
@@ -251,7 +251,7 @@ export function MultiSelect({
                   return (
                     <div
                       key={value}
-                      className="inline-flex items-center rounded-md px-2 py-0 text-xs font-medium h-4 leading-none transition-colors border"
+                      className="inline-flex items-center rounded-md px-1 py-0 text-xs font-medium h-4 leading-none transition-colors border"
                       style={colorStyle}
                     >
                       <span className="truncate max-w-40">
@@ -299,7 +299,7 @@ export function MultiSelect({
               value={inputValue}
               onValueChange={setInputValue}
               onKeyDown={handleKeyDown}
-              className="border-0 focus:ring-0 focus:outline-none rounded-t-xl h-6 py-1 text-sm"
+              className="border-0 focus:ring-0 focus:outline-none rounded-t-xl h-6 py-1 text-xs"
             />
             <CommandList className="max-h-64">
               <CommandEmpty>
@@ -333,8 +333,7 @@ export function MultiSelect({
                       value={option.label}
                       onSelect={() => handleSelect(optionValue, option.id)}
                       className={cn(
-                        "cursor-pointer rounded-lg px-4 py-0.5 mb-1 transition-all duration-200 hover:scale-[1.02] hover:shadow-md relative hover:brightness-95 border",
-                        isSelected && "ring-2 ring-white ring-opacity-60",
+                        "cursor-pointer rounded-lg px-1 py-0  mb-1 text-xs transition-all duration-200 hover:scale-[1.02] hover:shadow-md relative hover:brightness-95 border",
                       )}
                       style={colorStyle}
                     >
