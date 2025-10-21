@@ -5,19 +5,17 @@
   import { useState, useEffect } from "react"
   import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
   import { Button } from "@/components/ui/button"
-  import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
   import { Input } from "@/components/ui/input"
   import { Label } from "@/components/ui/label"
-  import { Textarea } from "@/components/ui/textarea"
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
   import { toast } from "sonner"
   import { Sparkles, BookOpenCheck, Plus, X, BookOpen } from "lucide-react"
   import { supabase } from "@/lib/supabaseClient"
   import { MultiSelect } from "@/components/MultiSelect"
-  import { MarkdownEditor } from "./MarkdownEditor"
-  import { MarkdownViewer } from "./MarkdownViewer"
   import { useBulkDataParser } from "@/hooks/useBulkDataParser"
   import { BulkInputSection } from "./BulkInputSection"
+import { QuotesSection, Quote } from "./QuotesSection"
 
   interface AddBookModalProps {
     trigger?: React.ReactNode
@@ -77,21 +75,10 @@
       review: "",
       series: "",
       seriesId: null as number | null,
-      quotes: [] as Array<{
-        text: string
-        page: string
-        type: string
-        category: string
-      }>,
+      quotes: [] as Quote[],
     })
 
     const [characterInput, setCharacterInput] = useState("")
-    const [quoteInput, setQuoteInput] = useState({
-      text: "",
-      page: "",
-      type: "",
-      category: [] as string[], // Cambiado de string a string[]
-    })
     // Hook para el parseo de datos masivos
     const { processBulkData } = useBulkDataParser({ genresOptions, authorsOptions, seriesOptions, setGenresOptions, setAuthorsOptions, setSeriesOptions  })
     // Efecto para cargar datos prefilled cuando el modal se abre
@@ -236,7 +223,7 @@
       if (!formData.authorId && formData.author) {
         const foundAuthor = authorsOptions.find(a => a.value === formData.author)
         if (foundAuthor?.id) {
-          setFormData(prev => ({ ...prev, authorId: foundAuthor.id }))
+          setFormData(prev => ({ ...prev, authorId: foundAuthor.id ?? null }))
         }
       }
 
@@ -244,7 +231,7 @@
       if (!formData.seriesId && formData.series) {
         const foundSeries = seriesOptions.find(s => s.value === formData.series)
         if (foundSeries?.id) {
-          setFormData(prev => ({ ...prev, seriesId: foundSeries.id }))
+          setFormData(prev => ({ ...prev, seriesId: foundSeries.id ?? null }))
         }
       }
 
@@ -402,7 +389,6 @@
         mainCharacters: prev.mainCharacters.filter((char) => char !== characterToRemove),
       }))
     }
-
     const handleCharacterKeyPress = (e: React.KeyboardEvent) => {
       if (e.key === "Enter") {
         e.preventDefault()
@@ -410,29 +396,10 @@
       }
     }
 
-    const addQuote = () => {
-      if (quoteInput.text.trim()) {
-        const newQuote = {
-          text: quoteInput.text.trim(),
-          page: quoteInput.page.trim(),
-          type: quoteInput.type.trim() || "General",
-          category: quoteInput.category.length > 0 ? quoteInput.category.join(", ") : "", // Uniendo las categorías con comas
-        }
-        setFormData((prev) => ({
-          ...prev,
-          quotes: [...prev.quotes, newQuote],
-        }))
-        setQuoteInput({ text: "", page: "", type: "", category: [] }) // Reseteando como array vacío
-      }
+    const handleQuotesChange = (quotes: Quote[]) => {
+      setFormData(prev => ({ ...prev, quotes }))
     }
-
-    const removeQuote = (index: number) => {
-      setFormData((prev) => ({
-        ...prev,
-        quotes: prev.quotes.filter((_, i) => i !== index),
-      }))
-    }
-
+    
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
@@ -938,101 +905,10 @@
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="summary" className="text-purple-700 font-medium">
-                      Resumen del Libro
-                    </Label>
-                    <Textarea
-                      id="summary"
-                      value={formData.summary}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, summary: e.target.value }))}
-                      rows={3}
-                      className="border-purple-200 focus:border-purple-400"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="review" className="text-purple-700 font-medium">
-                      Tu Opinión/Reseña
-                    </Label>
-                    <Textarea
-                      id="review"
-                      value={formData.review}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, review: e.target.value }))}
-                      rows={3}
-                      className="border-purple-200 focus:border-purple-400 "
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="border border-purple-200 rounded-lg p-2 space-y-1">
-                      <Label className="text-sm font-medium text-purple-600">Citas Favoritas</Label>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
-                        <div className="md:col-span-2">
-                          <MarkdownEditor
-                            value={quoteInput.text}
-                            onChange={(value) => setQuoteInput((prev) => ({ ...prev, text: value }))}
-                            placeholder="Escribe la cita (usa Markdown para formato)"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Input
-                            value={quoteInput.page}
-                            onChange={(e) => setQuoteInput((prev) => ({ ...prev, page: e.target.value }))}
-                            placeholder="Página"
-                            className="text-sm h-6 py-1 text-sm"
-                          />
-                          <MultiSelect
-                            options={quoteTypesOptions}
-                            selected={quoteInput.type ? [quoteInput.type] : []}
-                            onChange={(selected) => setQuoteInput((prev) => ({ ...prev, type: selected[0] || "" }))}
-                            placeholder="Tipos"
-                            singleSelect
-                            creatable
-                          />
-                          <MultiSelect
-                            options={quoteCategoriesOptions}
-                            selected={quoteInput.category}
-                            onChange={(selected) => setQuoteInput((prev) => ({ ...prev, category: selected }))}
-                            placeholder="Categorías"
-                            creatable
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-                      <Button type="button" onClick={addQuote} size="sm" className="bg-purple-600 hover:bg-purple-700">
-                        <Plus className="w-4 h-4 mr-1" />
-                        Agregar Cita
-                      </Button>
-                      {formData.quotes.length > 0 && (
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {formData.quotes.map((quote, index) => (
-                            <div key={index} className="bg-purple-50 p-3 rounded-lg text-sm">
-                              <div className="flex justify-between items-start gap-2">
-                                <div className="flex-1">
-                                  <MarkdownViewer content={quote.text} />
-                                  <div className="flex gap-2 mt-1 text-xs text-gray-500">
-                                    {quote.page && <span>Página {quote.page}</span>}
-                                    {quote.type && <span>• {quote.type}</span>}
-                                    {quote.category && <span>• {quote.category}</span>}
-                                  </div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  onClick={() => removeQuote(index)}
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <QuotesSection
+                    quotes={formData.quotes}
+                    onQuotesChange={handleQuotesChange}
+                  />
                 </CardContent>
               </Card>
 

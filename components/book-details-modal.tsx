@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import { Button } from "./ui/button"
 import { StarRating, EmptyStarRating, FavoriteButton } from "./book-components"
+import { QuotesSection } from "./QuotesSection"
 
 interface BookDetailsModalProps {
   book: Book | null
@@ -41,6 +42,12 @@ const getGenreColorStyle = (genreName: string) => {
 export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,refreshData,}: BookDetailsModalProps) {
   const [editingField, setEditingField] = useState<{ section: string; field: string } | null>(null)
   const [options, setOptions] = useState<Record<string, { value: string; label: string; id?: number }[]>>({})
+  const [isAddingQuote, setIsAddingQuote] = useState(false)
+  const [currentQuotes, setCurrentQuotes] = useState<Quote[]>(quotes)
+
+  useEffect(() => {
+    setCurrentQuotes(quotes)
+  }, [quotes])
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -268,6 +275,51 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
     }
   }
 
+  const handleSaveQuotes = async (quotesToSave: Quote[]) => {
+    if (!book) return
+
+    try {
+      // Eliminar todas las citas existentes del libro
+      const { error: deleteError } = await supabase
+        .from("quotes")
+        .delete()
+        .eq("book_id", book.id)
+
+      if (deleteError) throw deleteError
+
+      // Insertar las nuevas citas si hay alguna
+      if (quotesToSave.length > 0) {
+        const quotesToInsert = quotesToSave.map((quote) => ({
+          book_id: book.id,
+          text: quote.text,
+          page: quote.page ? Number.parseInt(quote.page) : null,
+          type: quote.type || null,
+          category: quote.category || null,
+          favorite: false,
+        }))
+
+        const { error: insertError } = await supabase
+          .from("quotes")
+        .insert(quotesToInsert)
+
+      if (insertError) throw insertError
+    }
+
+    // Actualizar el estado local
+    setCurrentQuotes(quotesToSave)
+    
+    toast.success("Citas actualizadas correctamente")
+    
+    // Refrescar datos si se proporcionó la función
+    if (refreshData) {
+      refreshData()
+    }
+  } catch (error) {
+    console.error("Error saving quotes:", error)
+    toast.error("Error al guardar las citas")
+  }
+}
+
   const renderEditableField = (section: string, field: string, label: string, value: any, options: any[] = [], color: "purple" | "blue" | "emerald" = "purple" ) => {
     const isEditing = editingField?.section === section && editingField?.field === field
     const colorClasses = {
@@ -353,7 +405,7 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
 
     if (isEditing) {
       return (
-        <div className="bg-white/60 rounded-lg p-3">
+        <div className="bg-white/60 rounded-lg p-3 relative" style={{ zIndex: 10000 }}>
           <div className="mt-1">
             <EditableCell
               book={book!}
@@ -975,26 +1027,51 @@ export function BookDetailsModal({book,isOpen,onOpenChange,quotes,onBookUpdate,r
                       <CardDescription className="text-purple-600">
                         Fragmentos que más me impactaron durante la lectura
                       </CardDescription>
+                      
+                      {/* BOTÓN PARA AGREGAR CITAS */}
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => setIsAddingQuote(!isAddingQuote)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                          size="sm"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          {isAddingQuote ? "Cancelar" : "Agregar Cita"}
+                        </Button>
+                      </div>
                     </CardHeader>
+                    
                     <CardContent className="flex-1">
                       <div className="h-full overflow-y-auto space-y-6">
-                        {quotes.length > 0 ? (
-                          quotes.map((quote) => (
-                            <div
-                              key={quote.id}
-                              className="border-l-4 border-purple-300 pl-4 py-2 bg-purple-50/50 rounded-r-lg"
-                            >
-                              <MarkdownViewer content={`"${quote.text}"`} />
-                              {quote.page && <div className="text-sm text-purple-600 mt-1">Página {quote.page}</div>}
-                              {quote.category && (
-                                <Badge variant="outline" className="mt-2 text-xs">
-                                  {quote.category}
-                                </Badge>
-                              )}
-                            </div>
-                          ))
+                        {/* COMPONENTE DE CITAS REUTILIZABLE - SOLO SE MUESTRA CUANDO ESTÁS AGREGANDO */}
+                        {isAddingQuote ? (
+                          <QuotesSection
+                            quotes={currentQuotes}
+                            onQuotesChange={handleSaveQuotes}
+                            className="mb-6"
+                          />
                         ) : (
-                          <p className="text-gray-400 italic">No hay citas registradas para este libro</p>
+                          /* LISTA DE CITAS EXISTENTES - SOLO SE MUESTRA CUANDO NO ESTÁS AGREGANDO */
+                          currentQuotes.length > 0 ? (
+                            currentQuotes.map((quote) => (
+                              <div
+                                key={quote.id}
+                                className="border-l-4 border-purple-300 pl-4 py-2 bg-purple-50/50 rounded-r-lg"
+                              >
+                                <MarkdownViewer content={`"${quote.text}"`} />
+                                {quote.page && <div className="text-sm text-purple-600 mt-1">Página {quote.page}</div>}
+                                {quote.category && (
+                                  <Badge variant="outline" className="mt-2 text-xs">
+                                    {quote.category}
+                                  </Badge>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-gray-400 italic">
+                              No hay citas registradas para este libro
+                            </p>
+                          )
                         )}
                       </div>
                     </CardContent>
